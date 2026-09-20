@@ -2,6 +2,7 @@ import requests
 import os
 import ftfy
 import sqlite3
+import pandas as pd
 from bs4 import BeautifulSoup
 from requests.exceptions import HTTPError, ConnectionError, Timeout, RequestException
 
@@ -221,8 +222,8 @@ if __name__ == "__main__":
                     title=link.contents[5].contents[0].text.strip()
                     fixed_text = ftfy.fix_text(title) # using ftfy library to fix any text encoding issues in the title of the product.
                     clean_text = fixed_text.encode('utf-8', errors='ignore').decode('utf-8')
-                    price_gbp=float(link.contents[7].contents[1].text.replace("Â£",""))
-                    price_inr=round(price_gbp*pound_to_inr,2)
+                    price_gbp=float(link.contents[7].contents[1].text.replace("Â£","")) # remove the pound symbol and convert the price to a float for further calculations.
+                    price_inr=round(price_gbp*pound_to_inr,2) # convert the price from GBP to INR using the conversion rate and round it to 2 decimal places for display.
                     in_stock=link.contents[7].contents[3].text.strip()
                     if in_stock=="In stock":
                         status=bool(1)
@@ -235,17 +236,55 @@ if __name__ == "__main__":
             query = "INSERT OR IGNORE INTO product_details (title, rating, price_pound, price_inr, availability, categorie_id) VALUES (?, ?, ?, ?, ?, ?)"
             db_insert_list(conn, cursor, query, products)
     # using where clause
-    query = "SELECT title, price_inr FROM product_details WHERE availability = 1 ORDER BY price_inr DESC LIMIT 5" # using select,where,order by clause to retrieve the top 5 most expensive available products from the product_details table and display their titles and prices in INR.
+    query = "SELECT title, price_inr FROM product_details WHERE availability = 1 AND rating IN (1, 5) ORDER BY price_inr DESC LIMIT 5" # using select,where,order by,group by,in clause to retrieve the top 5 most expensive available products from the product_details table and display their titles and prices in INR.
     results = db_fetch_all(cursor, query)
     for i in results:
         print(f"Title: {i[0]}, Price (INR): {i[1]}")
-    query="SELECT DISTINCT categories.title FROM categories inner JOIN product_details ON categories.id = product_details.categorie_id WHERE product_details.price_inr>10 " # using distinct,select,join clause to retrieve the count of products for each category from the product_details table and display the category title along with the corresponding product count.
+    #query="SELECT  categories.title as category,product_details.rating as rating,product_details.title title FROM categories inner JOIN product_details ON categories.id = product_details.categorie_id where (select count(*) from product_details as d where d.categorie_id=product_details.categorie_id and d.rating>product_details.rating order by d.title asc,d.rating limit 10) < 10    order by categories.title asc,product_details.rating  desc ; " # using distinct,select,between,join  to retrieve the count of products for each category from the product_details table and display the category title along with the corresponding product count.
+    query="""WITH RankedBooks AS (
+    SELECT  
+        categories.title AS category,
+        product_details.rating AS rating,
+        product_details.title AS title,
+        ROW_NUMBER() OVER (
+            PARTITION BY product_details.categorie_id 
+            ORDER BY CAST(product_details.rating AS NUMERIC) DESC, product_details.title ASC
+        ) AS row_num 
+    FROM categories 
+    INNER JOIN product_details ON categories.id = product_details.categorie_id
+)
+SELECT category, rating, title
+FROM RankedBooks
+WHERE row_num <= 10
+ORDER BY category ASC, rating DESC;
+"""
+
     results = db_fetch_all(cursor, query)
     for i in results:
-        print(f"Category: {i[0]}")
-    conn.close()
-    
-            
+        print(f"Category: {i[0]} rateing :{i[1]}  title :{i[2]}")
+   
 
+# using panda for sqlite
+    query="select id,title from categories ;"
+    categories_df=pd.read_sql(query, conn)
+    #print(categories_df.to_string(index=False))
 
-        
+    query="select id,title,price_inr,availability,rating,categorie_id from product_details order by price_inr desc;"
+    product_details_df=pd.read_sql(query, conn)
+    #print(product_details_df.to_string(index=False))
+
+    merge=pd.merge(product_details_df, categories_df, left_on='categorie_id', right_on='id',how='inner')
+    merge.drop(columns=['id_y','categorie_id'], inplace=True)
+    #print(merge.to_string(index=False))
+
+    #list the 10 highest rated books for each category"
+      
+    merge["rating"] = pd.to_numeric(merge["rating"], errors="coerce")
+    sorted_merge = merge.sort_values(by="rating", ascending=False)
+    result = sorted_merge.groupby("title_y").head(10)
+    final_result = result[["title_y", "title_x", "rating"]]
+    final_result = final_result.sort_values(by=["title_y", "rating"], ascending=[True, False])
+    print(final_result.to_string(index=False))
+ 
+
+    conn.close()      

@@ -4,6 +4,7 @@ import ftfy
 import sqlite3
 import pandas as pd
 from bs4 import BeautifulSoup
+from tabulate import tabulate
 from requests.exceptions import HTTPError, ConnectionError, Timeout, RequestException
 
 pound_to_inr = 105.50 #conversation rate from pound to inr
@@ -162,6 +163,7 @@ if __name__ == "__main__":
             
             print("Successfully downloaded the webpage content!")
             #print(categories)
+
             query = """CREATE TABLE IF NOT EXISTS categories (
                                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                                 title TEXT NOT NULL,
@@ -204,6 +206,7 @@ if __name__ == "__main__":
                         "Four":4,
                         "Five":5
                       }
+        # query 1
         q1="select count(*) from product_details;" # select clause for retrieving the count of records in the product_details table to 
         fetch_one=db_fetch_one(cursor, q1)
         print(fetch_one)
@@ -235,12 +238,23 @@ if __name__ == "__main__":
             #print(products)
             query = "INSERT OR IGNORE INTO product_details (title, rating, price_pound, price_inr, availability, categorie_id) VALUES (?, ?, ?, ?, ?, ?)"
             db_insert_list(conn, cursor, query, products)
-    # using where clause
+    # using where ,in , order by ,limt
+    # query 2
     query = "SELECT title, price_inr FROM product_details WHERE availability = 1 AND rating IN (1, 5) ORDER BY price_inr DESC LIMIT 5" # using select,where,order by,group by,in clause to retrieve the top 5 most expensive available products from the product_details table and display their titles and prices in INR.
     results = db_fetch_all(cursor, query)
-    for i in results:
-        print(f"Title: {i[0]}, Price (INR): {i[1]}")
+    print('--'*32)    
+    print(" price,title with rating in(1,5)")
+    print('--'*32)  
+    headers = [description[0] for description in cursor.description]   
+    print(tabulate(results, headers=headers, tablefmt="plain", maxcolwidths=[None, None, 30]))
+    
+
+
+
+    #for i in results:
+       #print(f"Title: {i[0]}, Price (INR): {i[1]}")
     #query="SELECT  categories.title as category,product_details.rating as rating,product_details.title title FROM categories inner JOIN product_details ON categories.id = product_details.categorie_id where (select count(*) from product_details as d where d.categorie_id=product_details.categorie_id and d.rating>product_details.rating order by d.title asc,d.rating limit 10) < 10    order by categories.title asc,product_details.rating  desc ; " # using distinct,select,between,join  to retrieve the count of products for each category from the product_details table and display the category title along with the corresponding product count.
+    #query 3
     query="""WITH RankedBooks AS (
     SELECT  
         categories.title AS category,
@@ -253,16 +267,46 @@ if __name__ == "__main__":
     FROM categories 
     INNER JOIN product_details ON categories.id = product_details.categorie_id
 )
-SELECT category, rating, title
+SELECT category,  title,rating
 FROM RankedBooks
 WHERE row_num <= 10
 ORDER BY category ASC, rating DESC;
 """
 
     results = db_fetch_all(cursor, query)
-    for i in results:
-        print(f"Category: {i[0]} rateing :{i[1]}  title :{i[2]}")
-   
+    print('--'*32)
+    print("the 10 highest-rated books per category from sqlite3 python")
+    print('--'*32)    
+    headers = [description[0] for description in cursor.description]   
+    print(tabulate(results, headers=headers, tablefmt="plain", maxcolwidths=[None, None, 30]))
+    #for i in results:
+       # print(f"Category: {i[0]} rateing :{i[1]}  title :{i[2]}")
+    #query 4 left join
+    query=" select a.title ,b.title as category from product_details a left join categories b on a.categorie_id=b.id;"
+    results = db_fetch_all(cursor, query)
+    print('--'*32)
+    print("left join ")
+    print('--'*32)    
+    headers = [description[0] for description in cursor.description]   
+    print(tabulate(results, headers=headers, tablefmt="plain", maxcolwidths=[None, None, 30]))
+    # query 5 right join
+    query=" select a.title,b.title as category from product_details a right join categories b on a.categorie_id=b.id;"
+    results = db_fetch_all(cursor, query)
+    print('--'*32)
+    print("right join ")
+    print('--'*32)    
+    headers = [description[0] for description in cursor.description]   
+    print(tabulate(results, headers=headers, tablefmt="plain", maxcolwidths=[None, None, 30]))
+    # query 6  full outer join
+    query=" select a.title,b.title as category from product_details a full outer join categories b on a.categorie_id=b.id;"
+    results = db_fetch_all(cursor, query)
+    print('--'*32)
+    print("full outer join ")
+    print('--'*32)    
+    headers = [description[0] for description in cursor.description]   
+    print(tabulate(results, headers=headers, tablefmt="plain", maxcolwidths=[None, None, 30]))
+
+
 
 # using panda for sqlite
     query="select id,title from categories ;"
@@ -284,7 +328,27 @@ ORDER BY category ASC, rating DESC;
     result = sorted_merge.groupby("title_y").head(10)
     final_result = result[["title_y", "title_x", "rating"]]
     final_result = final_result.sort_values(by=["title_y", "rating"], ascending=[True, False])
+    print('--'*32)
+    print("the 10 highest-rated books per category using pandas")
+    print('--'*32) 
+    final_result.rename(columns={"title_y":"categories","title_x":"title"},inplace=True)
     print(final_result.to_string(index=False))
- 
 
+    # panda left join
+    left_join=pd.merge(product_details_df, categories_df, left_on='categorie_id', right_on='id',how='left')
+    left_join.drop(columns=['id_y','id_x',"price_inr","availability",'rating','categorie_id'], inplace=True)
+    print('--'*32)
+    print("left join using pandas")
+    print('--'*32) 
+    left_join.rename(columns={"title_y":"categories","title_x":"title"},inplace=True)
+    print(left_join.to_string(index=False))
+
+    # panda right join
+    right_join=pd.merge(product_details_df, categories_df, left_on='categorie_id', right_on='id',how='right')
+    right_join.drop(columns=['id_y','id_x',"price_inr","availability",'rating','categorie_id'], inplace=True)
+    print('--'*32)
+    print("right join using pandas")
+    print('--'*32) 
+    right_join.rename(columns={"title_y":"categories","title_x":"title"},inplace=True)
+    print(right_join.to_string(index=False))
     conn.close()      

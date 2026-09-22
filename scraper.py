@@ -238,12 +238,12 @@ if __name__ == "__main__":
             #print(products)
             query = "INSERT OR IGNORE INTO product_details (title, rating, price_pound, price_inr, availability, categorie_id) VALUES (?, ?, ?, ?, ?, ?)"
             db_insert_list(conn, cursor, query, products)
-    # using where ,in , order by ,limt
+    # using where ,in , order by ,limt,between
     # query 2
-    query = "SELECT title, price_inr FROM product_details WHERE availability = 1 AND rating IN (1, 5) ORDER BY price_inr DESC LIMIT 5" # using select,where,order by,group by,in clause to retrieve the top 5 most expensive available products from the product_details table and display their titles and prices in INR.
+    query = "SELECT title, price_inr FROM product_details WHERE availability = 1 AND rating IN (1, 5) AND price_inr between 5000 and 5500 ORDER BY price_inr DESC LIMIT 5" # using select,where,order by,group by,in clause to retrieve the top 5 most expensive available products from the product_details table and display their titles and prices in INR.
     results = db_fetch_all(cursor, query)
     print('--'*32)    
-    print(" price,title with rating in(1,5)")
+    print(" price,title with rating in(1,5) price between 5000 and 5500 limit 5")
     print('--'*32)  
     headers = [description[0] for description in cursor.description]   
     print(tabulate(results, headers=headers, tablefmt="plain", maxcolwidths=[None, None, 30]))
@@ -305,8 +305,6 @@ ORDER BY category ASC, rating DESC;
     print('--'*32)    
     headers = [description[0] for description in cursor.description]   
     print(tabulate(results, headers=headers, tablefmt="plain", maxcolwidths=[None, None, 30]))
-
-
 
 # using panda for sqlite
     query="select id,title from categories ;"

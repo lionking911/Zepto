@@ -2,21 +2,21 @@
 #pip install chromadb sentence-transformers
 import chromadb
 
-with open("/content/drive/MyDrive/zapto1/Zepto/Delivery Policy", "r") as f:
+with open("/Delivery Policy", "r") as f:
   Delivery_Policy = f.read()
-with open("/content/drive/MyDrive/zapto1/Zepto/Returns & Refunds", "r") as f:
+with open("/Returns & Refunds", "r") as f:
   Return_Refunds = f.read()
-with open("/content/drive/MyDrive/zapto1/Zepto/Membership Tiers", "r") as f:
+with open("/Membership Tiers", "r") as f:
   Membershipt_Tiers = f.read()
-with open("/content/drive/MyDrive/zapto1/Zepto/Order Tracking", "r") as f:
+with open("/Order Tracking", "r") as f:
   Order_Tracking = f.read()
-with open("/content/drive/MyDrive/zapto1/Zepto/Order Cancellation Policy", "r") as f:
+with open("/Order Cancellation Policy", "r") as f:
   Cancellation_Policy = f.read()
-with open("/content/drive/MyDrive/zapto1/Zepto/Damaged or Missing Items", "r") as f:
+with open("/Damaged or Missing Items", "r") as f:
    Missing_Items= f.read()
-with open("/content/drive/MyDrive/zapto1/Zepto/Gift Cards", "r") as f:
+with open("/Gift Cards", "r") as f:
   Gift_Cards = f.read()
-with open("/content/drive/MyDrive/zapto1/Zepto/Customer Support Hours", "r") as f:
+with open("/Customer Support Hours", "r") as f:
   Customer_Support_Hours = f.read()
 
 

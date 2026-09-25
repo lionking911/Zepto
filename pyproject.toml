@@ -7,7 +7,12 @@ requires-python = ">=3.14"
 dependencies = [
     "beautifulsoup4>=4.15.0",
     "ftfy>=6.3.1",
+    "imblearn>=0.0",
+    "joblib>=1.6.0",
+    "matplotlib>=3.11.2",
     "pandas>=3.0.6",
     "requests>=2.34.2",
+    "scikit-learn>=1.9.1",
+    "seaborn>=0.13.2",
     "tabulate>=0.10.0",
 ]

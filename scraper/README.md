@@ -1,3 +1,4 @@
+
 # Book Scraper
 
 A Python-based web scraper that extracts book data from [books.toscrape.com](https://books.toscrape.com/) and stores it in a SQLite database.

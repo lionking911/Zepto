@@ -197,7 +197,7 @@ if __name__ == "__main__":
                                     file.write(products_list)
                         print("Successfully downloaded the webpage content!")
     else:
-        print("Using existing HTML files.")
+        print("Using existing HTML files and bookscrap.db")
         products=[]
         number_check={ 
                         "One":1,
@@ -207,9 +207,14 @@ if __name__ == "__main__":
                         "Five":5
                       }
         # query 1
-        q1="select count(*) from product_details;" # select clause for retrieving the count of records in the product_details table to 
+        q1="select count(*) from product_details ;" # select clause for retrieving the count of records in the product_details table to 
         fetch_one=db_fetch_one(cursor, q1)
-        print(fetch_one)
+        print(f" number of Books: {fetch_one}")
+        q2="SELECT categorie_id, COUNT(categorie_id) AS total_count FROM product_details GROUP BY categorie_id;" # group by
+        fetch_all=db_fetch_all(cursor, q2)
+        print(f" number of Categories: {len(fetch_all)}  ")
+        headers = [description[0] for description in cursor.description]   
+        print(tabulate(fetch_all, headers=headers, tablefmt="plain", maxcolwidths=[None, None, 30]))
         if fetch_one==0:
 
             query = "select id,link from categories LIMIT 4 " # select clause for retrieving the ID and link of categories with limit of 4 records
@@ -240,7 +245,7 @@ if __name__ == "__main__":
             db_insert_list(conn, cursor, query, products)
     # using where ,in , order by ,limt,between
     # query 2
-    query = "SELECT title, price_inr FROM product_details WHERE availability = 1 AND rating IN (1, 5) AND price_inr between 5000 and 5500 ORDER BY price_inr DESC LIMIT 5" # using select,where,order by,group by,in clause to retrieve the top 5 most expensive available products from the product_details table and display their titles and prices in INR.
+    query = "SELECT title, price_inr FROM product_details WHERE availability = 1 AND rating IN (1, 5) AND price_inr between 5000 and 5500 ORDER BY price_inr DESC LIMIT 5" # using select,where,order by,in clause to retrieve the top 5 most expensive available products from the product_details table and display their titles and prices in INR.
     results = db_fetch_all(cursor, query)
     print('--'*32)    
     print(" price,title with rating in(1,5) price between 5000 and 5500 limit 5")

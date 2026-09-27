@@ -1,0 +1,14 @@
+requests
+beautifulsoup4
+ftfy
+pandas
+tabulate
+numpy
+matplotlib
+seaborn
+scikit-learn
+imbalanced-learn
+joblib
+chromadb
+langgraph
+pydantic

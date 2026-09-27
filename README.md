@@ -1,19 +1,19 @@
 # Zepto
 
-Zepto is a 3-in-1 Python project that brings together:
+Zepto is a modular Python project containing:
 
-- Web scraping with a SQLite-backed book catalog
-- Titanic data analytics and machine learning
-- An AI-powered customer support assistant using RAG and LangGraph
+- A web scraper with SQLite-backed book catalog analytics
+- Titanic exploratory data analysis and machine learning workflows
+- An AI-powered customer support assistant using RAG, ChromaDB, LangGraph, Groq, and FastAPI
 
-This repository is organized as three independent modules, each with its own scripts, data files, and documentation.
+Each module can be installed, run, and documented independently.
 
 ## Repository structure
 
 ```text
 Zepto/
 ├── README.md
-├── Analytics/
+├── analytics/
 │   ├── EDAREADME.md
 │   ├── MODELINGREADME.md
 │   ├── cleaned_titanic.csv
@@ -22,66 +22,121 @@ Zepto/
 │   ├── modeling.py
 │   ├── screenshots/
 │   └── titanic.csv
-├── SupportAssistances/
-│   ├── Customer Support Hours
-│   ├── Damaged or Missing Items
-│   ├── Delivery Policy
-│   ├── Gift Cards
-│   ├── Membership Tiers
-│   ├── Order Cancellation Policy
-│   ├── Order Tracking
-│   ├── Returns & Refunds
-│   ├── SUPPORTREADME.md
-│   └── support_assistances.py
-├── scraper/
+├── data_pipeline/
 │   ├── README.md
 │   ├── scraper.py
-│   └── scraped_html/
+│   └── scraper_html/
+├── support_assistant/
+│   ├── data/
+│   │   ├── DeliveryPolicy.txt
+│   │   ├── ReturnsRefunds.txt
+│   │   ├── MembershipTiers.txt
+│   │   ├── OrderTracking.txt
+│   │   ├── OrderCancellationPolicy.txt
+│   │   ├── DamagedorMissingItems.txt
+│   │   ├── GiftCards.txt
+│   │   └── CustomerSupportHours.txt
+│   ├── README.md
+│   ├── SUPPORTREADME.md
+│   ├── requirements.txt
+│   ├── support_assistances.py
+│   └── support_assistant_docker.dockerfile
+├── requirements.txt
 └── .gitignore
 ```
 
 ## Modules
 
-### 1) Book scraper
-Location: `scraper/`
+### 1. Book scraper and data pipeline
 
-The scraper collects book information from books.toscrape.com, cleans the data, and stores it in SQLite. It also runs SQL and pandas-based analytical queries to inspect pricing, ratings, and category relationships.
+Location: `data_pipeline/`
+
+The scraper collects book information from [books.toscrape.com](https://books.toscrape.com/), cleans the data, stores it in SQLite, and runs SQL and pandas-based analytics.
+
+Run from the repository root:
+
+```bash
+python data_pipeline/scraper.py
+```
+
+Or run from inside the module:
+
+```bash
+cd data_pipeline
+python scraper.py
+```
+
+See [`data_pipeline/README.md`](data_pipeline/README.md) for database schema, query examples, caching behavior, and troubleshooting.
+
+### 2. Titanic analytics and machine learning
+
+Location: `analytics/`
+
+This module includes:
+
+- Exploratory data analysis in `eda.py`
+- Model training and evaluation in `modeling.py`
+- Titanic datasets
+- A trained prediction pipeline artifact
 
 Run:
 
 ```bash
-python scraper/scraper.py
+python analytics/eda.py
+python analytics/modeling.py
 ```
 
-### 2) Titanic analytics and ML
-Location: `Analytics/`
+Documentation:
 
-This section includes:
+- [`analytics/EDAREADME.md`](analytics/EDAREADME.md)
+- [`analytics/MODELINGREADME.md`](analytics/MODELINGREADME.md)
 
-- Exploratory data analysis (`eda.py`)
-- Model training and evaluation (`modeling.py`)
-- Titanic datasets (`titanic.csv`, `cleaned_titanic.csv`)
-- Trained pipeline artifact (`full_prediction_pipeline.joblib`)
+### 3. Support assistant
 
-Run:
+Location: `support_assistant/`
+
+The support assistant uses policy documents and retrieval-augmented generation to answer Zepto customer-support questions. It provides:
+
+- Intent classification: `policy_question` or `general_question`
+- Semantic retrieval from ChromaDB
+- LangGraph workflow orchestration
+- Groq-based LLM answer generation
+- Pydantic output validation
+- FastAPI endpoint at `POST /chat`
+- Source attribution and confidence scores
+
+Install its dependencies:
 
 ```bash
-python Analytics/eda.py
-python Analytics/modeling.py
+pip install -r support_assistant/requirements.txt
 ```
 
-### 3) Support assistant
-Location: `SupportAssistances/`
-
-This module builds a customer support assistant using retrieval-augmented generation (RAG), semantic retrieval, and a FastAPI-based chatbot interface. It uses policy documents in the folder to answer support questions with source-aware responses.
-
-Run:
+Start the API from the repository root:
 
 ```bash
-python SupportAssistances/support_assistances.py
+uvicorn support_assistant.support_assistances:app --host 127.0.0.1 --port 8050 --reload
 ```
 
-Once started, the service can be queried through the API exposed by the script.
+The API will be available at `http://127.0.0.1:8050`.
+
+Send a request:
+
+```bash
+curl -X POST "http://127.0.0.1:8050/chat" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_query": "What is the policy for returns?",
+    "mock_llm": 1
+  }'
+```
+
+The support assistant loads its policy documents from `support_assistant/data/`. For production LLM mode, create `support_assistant/.env`:
+
+```dotenv
+GROQ_API_KEY=your_api_key_here
+```
+
+See [`support_assistant/README.md`](support_assistant/README.md) for complete setup, API examples, configuration, testing, Docker deployment, and troubleshooting instructions.
 
 ## Getting started
 
@@ -89,24 +144,42 @@ Once started, the service can be queried through the API exposed by the script.
 
 - Python 3.8+
 - pip
-- Internet access for the scraper and dataset download flow
+- Internet access for the book scraper and Groq API usage
+- A Groq API key for support-assistant production mode
 
-### Install dependencies
+### Create a virtual environment
 
-```bash
-pip install requests beautifulsoup4 ftfy pandas numpy scikit-learn imbalanced-learn matplotlib seaborn tabulate joblib chromadb sentence-transformers langgraph pydantic fastapi uvicorn nest-asyncio groq
-```
-
-If you are using a virtual environment, create one first:
+Linux/macOS:
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 ```
 
-## Environment variables
+Windows PowerShell:
 
-For the support assistant, optional environment values can be configured:
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+```
+
+### Install dependencies
+
+Install dependencies for the module you want to use:
+
+```bash
+pip install -r support_assistant/requirements.txt
+```
+
+For the complete project environment, install the root requirements file as well:
+
+```bash
+pip install -r requirements.txt
+```
+
+## Support assistant environment variables
+
+The support assistant uses the following configuration values where supported by the implementation:
 
 ```bash
 export GROQ_API_KEY="your_api_key_here"
@@ -115,22 +188,32 @@ export MODEL_NAME="qwen/qwen3.8-27b"
 export MOCK_LLM="0"
 ```
 
+On Windows PowerShell:
+
+```powershell
+$env:GROQ_API_KEY="your_api_key_here"
+$env:DB_PATH="/content/zepto_knowledge_db"
+$env:MODEL_NAME="qwen/qwen3.8-27b"
+$env:MOCK_LLM="0"
+```
+
+The support assistant documentation notes that database path, model, and mock-mode environment variables must be read by the Python implementation with `os.getenv()` to affect runtime behavior.
+
 ## Documentation
 
-Each module has its own README and supporting notes:
-
-- `scraper/README.md`
-- `Analytics/EDAREADME.md`
-- `Analytics/MODELINGREADME.md`
-- `SupportAssistances/SUPPORTREADME.md`
+- [`data_pipeline/README.md`](data_pipeline/README.md) — scraper and SQLite analytics
+- [`analytics/EDAREADME.md`](analytics/EDAREADME.md) — exploratory data analysis
+- [`analytics/MODELINGREADME.md`](analytics/MODELINGREADME.md) — machine learning pipeline
+- [`support_assistant/README.md`](support_assistant/README.md) — canonical support assistant documentation
+- [`support_assistant/SUPPORTREADME.md`](support_assistant/SUPPORTREADME.md) — legacy support assistant documentation
 
 ## Notes
 
-- The repository is structured as modular, independent components rather than a single app.
-- Each module can be run separately.
-- Some generated artifacts, such as CSVs, model files, and scraped HTML caches, are created during execution.
-- README updates are maintained as the repository evolves.
+- Modules are independent and can be run separately.
+- Generated artifacts such as SQLite databases, cached HTML, CSV files, and model files may be created during execution.
+- Do not commit secrets such as `.env` files or API keys.
+- The support assistant API should be started with Uvicorn; importing `support_assistances.py` creates the FastAPI app but does not itself start the server.
 
-## Status
+## Project status
 
-Active development.
+Active development on the `devlopment` branch.

@@ -1,31 +1,23 @@
-# Zepto Project Requirements
-# Dependencies for all three modules: Analytics, SupportAssistances, and scraper
 
-# Analytics Module Dependencies
-pandas==2.0.3
-numpy==1.24.3
-seaborn==0.12.2
-matplotlib==3.7.2
-scikit-learn==1.3.0
-imbalanced-learn==0.11.0
-joblib==1.3.1
-tabulate==0.9.0
+requests
+beautifulsoup4
+ftfy
+pandas
+tabulate
+numpy
+matplotlib
+seaborn
+scikit-learn
+imbalanced-learn
+joblib
+chromadb
+langgraph
+pydantic
+sentence-transformers
+groq
+fastapi
+uvicorn
+sqlite3
+python-dotenv
 
-# SupportAssistances Module Dependencies
-chromadb==0.4.10
-sentence-transformers==2.2.2
-langgraph==0.0.1
-pydantic==2.0.0
-fastapi==0.103.0
-uvicorn==0.23.2
-nest-asyncio==1.5.7
-groq==0.0.1
 
-# Scraper Module Dependencies
-requests==2.31.0
-beautifulsoup4==4.12.2
-ftfy==6.1.1
-sqlite3  # Built-in with Python, no installation needed
-
-# Additional utilities
-python-dotenv==1.0.0

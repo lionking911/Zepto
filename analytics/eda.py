@@ -30,7 +30,7 @@ else:
     # checking for null total ,percentage column wise
     print(titanic.isnull().sum())
     print(titanic.isnull().mean()*100)
-    # age column is having null percentage 19.86 as per instruction we impute nan values with median
+    # age column is having null percentage 19.86 as per instruction we impute nan values with median as data destribution of age is symmetric
     # pclass is labeling of class so we can check columns are equal after labeling and delete
     # embarked,embarked_town one column can be removed as embarked is short nameing of embarked_town both have 0.2 percent nan values so we can remove this rows
     # columns alive if we apply label coding and check with survived column both are like
@@ -51,7 +51,7 @@ else:
     # we can remove embarked nan rows as its low than 5% as per rules
     titanic.dropna(subset=["embarked"],inplace=True)
 
-    titanic["age"]=titanic["age"].fillna(titanic["age"].mean()) # filling nan values of age with median
+    titanic["age"]=titanic["age"].fillna(titanic["age"].mean()) # filling nan values of age with median age data distribution is symmetric
     
     titanic.drop_duplicates(inplace=True) # checking how many duplicate records are there and droping those records
     titanic.info()

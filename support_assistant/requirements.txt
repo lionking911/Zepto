@@ -1,0 +1,9 @@
+chromadb
+langgraph
+pydantic
+sentence-transformers
+groq
+fastapi
+uvicorn
+asyncio
+python-dotenv

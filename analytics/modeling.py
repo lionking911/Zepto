@@ -36,7 +36,7 @@ comparision_list=[]
 #  DATA LOADING & TRAIN-TEST SPLIT
 
 
-df = pd.read_csv("cleaned_titanic.csv")
+df = pd.read_csv("cleaned_titanic.csv") # all modification of imputing ,deleting are done on titanic.csv and saved as cleaned_titanic.csv
 
 # Define Features and Target
 X = df[['pclass', 'sex', 'age', 'sibsp', 'parch', 'fare', 'embarked']]

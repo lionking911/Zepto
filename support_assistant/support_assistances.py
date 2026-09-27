@@ -3,7 +3,7 @@
 import chromadb
 import os
 
-
+MOCK_LLM=0
 current_dir = os.path.dirname(os.path.abspath(__file__))
 folder_path = os.path.join(current_dir, "Delivery Policy")
 with open(folder_path, "r") as f:
@@ -94,20 +94,7 @@ def retrieve(question, n_results = 3):
 
   return results["documents"][0], results['metadatas'][0]
 
-print("==="*50)
-print("Testing out of retrieve function")
-# Test the retrieve function
-question = "What is the policy for canceling an order?"
-retrieved_docs, retrieved_metadata = retrieve(question)
 
-print("Retrieved Documents:")
-for doc, meta in zip(retrieved_docs, retrieved_metadata):
-  print(f"Source: {meta['source']}")
-  print(f"Content: {doc}\n")
-
-print("==="*50)
-# Install the Groq SDK
-#pip install -qU groq
 
 # Import necessary libraries
 import os
@@ -477,45 +464,15 @@ apple = workflow.compile()
 
 print("LangGraph StateGraph created successfully!")
 
-# Set MOCK_LLM to '0' to use the real LLM integration
-MOCK_LLM = '0'
 
-#print("---Testing with a Policy Question---")
-policy_query = "What is the policy for returns?"
-
-# Run the graph
-inputs = {"query": policy_query}
-response = apple.invoke(inputs)
-
-print(f"\nQuery: {response['query']}")
-print(f"Intent: {response['intent']}")
-print(f"Answer: {response['answer']}")
-print(f"Retrieved Content Sources: {response['sources']}")
-print(f"Confidence: {response['confidence']}")
-
-# Set MOCK_LLM to '0' to use the real LLM integration
-MOCK_LLM = '1'
-
-#print("\n---Testing with a General Question---")
-general_query = "What is the capital of France?"
-
-# Run the graph
-inputs = {"query": general_query}
-response = apple.invoke(inputs)
-
-print(f"\nQuery: {response['query']}")
-print(f"Intent: {response['intent']}")
-print(f"Answer: {response['answer']}")
-print(f"Retrieved Content Sources: {response['sources']}")
-print(f"Confidence: {response['confidence']}")
 
 import asyncio
 from fastapi import FastAPI
 
 from pydantic import BaseModel
-import nest_asyncio
+#import nest_asyncio
 import uvicorn
-import threading 
+#import threading 
 
 #nest_asyncio.apply()
 
@@ -544,6 +501,7 @@ async def chat_with_agent(request: QueryRequest):
 
 
 # 5. Run Uvicorn in the background thread
+# u have to be inside folde support_assistant
 # python -m uvicorn support_assistances:app --reload --port 8050
 # attached 2 screen shots as png
 

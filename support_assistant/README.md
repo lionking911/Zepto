@@ -1,10 +1,26 @@
 # Zepto Support Assistant
 
-An AI-powered customer support assistant for Zepto using retrieval-augmented generation (RAG), ChromaDB, LangGraph, Groq, and FastAPI.
+An AI-powered customer support assistant for Zepto using retrieval-augmented generation (RAG), ChromaDB, LangGraph, Groq, Pydantic, and FastAPI.
 
-## Project location
+## Overview
 
-This module is located in `support_assistant/`.
+The assistant:
+
+- Classifies queries as `policy_question` or `general_question`.
+- Retrieves relevant policy content from ChromaDB.
+- Generates answers with source attribution and confidence scores.
+- Uses LangGraph to route queries through the appropriate workflow.
+- Exposes a FastAPI endpoint at `POST /chat`.
+
+Workflow:
+
+```text
+User query → Classify intent → Route query
+                         ├── Policy question → Retrieve documents → Generate answer
+                         └── General question → Direct answer
+```
+
+## Project structure
 
 ```text
 support_assistant/
@@ -17,10 +33,13 @@ support_assistant/
 │   ├── DamagedorMissingItems.txt
 │   ├── GiftCards.txt
 │   └── CustomerSupportHours.txt
+├── README.md
+├── SUPPORTREADME.md              # Legacy documentation; this README is canonical
 ├── support_assistances.py
 ├── requirements.txt
-├── SUPPORTREADME.md
-└── README.md
+├── support_assistant_docker.dockerfile
+├── firstdemostration.png
+└── seconddemonstration.png
 ```
 
 ## Installation
@@ -38,13 +57,15 @@ cd support_assistant
 pip install -r requirements.txt
 ```
 
-Create `support_assistant/.env` and add your Groq API key when using production LLM mode:
+Create `support_assistant/.env` for production LLM mode:
 
 ```dotenv
 GROQ_API_KEY=your_api_key_here
 ```
 
-## Start the API
+## Running the API
+
+The Python module creates the FastAPI application but does not automatically start a server. Start it with Uvicorn.
 
 From the repository root:
 
@@ -59,8 +80,6 @@ uvicorn support_assistances:app --host 127.0.0.1 --port 8050 --reload
 ```
 
 The API is available at `http://127.0.0.1:8050`.
-
-> Running `python support_assistances.py` only imports and builds the application; use Uvicorn to start the server unless a server entry point is added to the script.
 
 ## API usage
 
@@ -80,11 +99,11 @@ curl -X POST "http://127.0.0.1:8050/chat" \
 | Field | Type | Description |
 |---|---|---|
 | `user_query` | string | Customer question. |
-| `mock_llm` | integer | Use `1` for deterministic keyword/canned testing mode and `0` for LLM mode. |
+| `mock_llm` | integer | Intended to select testing mode (`1`) or LLM mode (`0`). |
 
-### Response
+The current `QueryRequest` model requires both fields. The current workflow uses the module-level `MOCK_LLM` value, so request-level mode selection should be synchronized with the implementation before relying on it in production.
 
-The current implementation returns a response similar to:
+### Current response format
 
 ```json
 {
@@ -100,6 +119,8 @@ The current implementation returns a response similar to:
 
 ## Programmatic usage
 
+From the repository root:
+
 ```python
 from support_assistant.support_assistances import apple
 
@@ -111,61 +132,99 @@ print(response["sources"])
 print(response["confidence"])
 ```
 
-## How it works
+When importing from inside the `support_assistant` directory, use:
 
-1. The query is classified as `policy_question` or `general_question`.
-2. Policy questions retrieve relevant chunks from the ChromaDB collection.
-3. The retrieved context is passed to the answer-generation step.
-4. General questions are handled by the direct-answer step.
-5. The LangGraph workflow returns the answer, sources, intent, and confidence.
-
-The workflow is:
-
-```text
-Classify intent → Route query → Retrieve and answer / Direct answer → Return response
+```python
+from support_assistances import apple
 ```
 
 ## Policy documents
 
-The assistant indexes these eight document types:
+The assistant indexes these eight policy document types:
 
-- Delivery Policy
-- Returns & Refunds
-- Membership Tiers
-- Order Tracking
-- Order Cancellation Policy
-- Damaged or Missing Items
-- Gift Cards
-- Customer Support Hours
+| Document | Purpose |
+|---|---|
+| Delivery Policy | Shipping times, regions, and costs |
+| Returns & Refunds | Return process and refund timelines |
+| Membership Tiers | Benefits, eligibility, and renewal |
+| Order Tracking | Tracking status and updates |
+| Order Cancellation Policy | Cancellation rules and timelines |
+| Damaged or Missing Items | Claims and resolution process |
+| Gift Cards | Purchase, usage, and expiry |
+| Customer Support Hours | Availability and contact channels |
 
 Documents are loaded from `support_assistant/data/` when the module is imported.
 
+## Output schema
+
+The internal answer model is `AnswerOutput`:
+
+```json
+{
+  "answer": "string",
+  "sources": ["document name"],
+  "confidence": 0.0
+}
+```
+
+- `answer`: The generated response.
+- `sources`: Policy documents used for the answer. General questions should return an empty list.
+- `confidence`: A score from `0.0` to `1.0`.
+
 ## Configuration
 
-The current script uses the following defaults:
+Current implementation defaults:
 
 ```text
 ChromaDB path: /content/zepto_knowledge_db
 Collection: compnay_docs
 Model: qwen/qwen3.8-27b
+Temperature: 0.0
 Retrieval results: 3
 ```
 
-The `.env` file is loaded from `support_assistant/.env`. The current code requires `GROQ_API_KEY` when `MOCK_LLM` is disabled. If you customize database path, model, or mock-mode configuration through environment variables, ensure the Python implementation also reads those variables with `os.getenv()`.
+The module loads `GROQ_API_KEY` from `support_assistant/.env`. The documented `DB_PATH`, `MODEL_NAME`, and `MOCK_LLM` environment variables require corresponding `os.getenv()` handling in the Python implementation before they affect runtime behavior.
 
-## Testing mode
+### ChromaDB
 
-The source currently declares `MOCK_LLM` as an integer and compares it with the string `'1'`. Until that implementation is normalized, use the same type consistently in code. The intended behavior is:
+Persistent storage is currently configured as:
 
 ```python
+chroma_client = chromadb.PersistentClient(
+    path="/content/zepto_knowledge_db"
+)
+collection = chroma_client.get_or_create_collection(
+    name="compnay_docs"
+)
+```
+
+For development, ChromaDB can be changed to an ephemeral client:
+
+```python
+chroma_client = chromadb.EphemeralClient()
+```
+
+### Mock and production modes
+
+The intended configuration is:
+
+```python
+# Testing: keyword classification and deterministic responses
 MOCK_LLM = 1
 
+# Production: Groq LLM classification and generation
+MOCK_LLM = 0
+```
+
+The current source declares `MOCK_LLM` as an integer but compares it with the string `'1'`. Normalize the type before relying on mock mode:
+
+```python
 if MOCK_LLM == 1:
-    # keyword-based classification and deterministic responses
+    # mock mode
     pass
 ```
 
-Testing mode recognizes these keywords:
+Testing mode recognizes these policy keywords:
 
 ```python
 [
@@ -174,31 +233,93 @@ Testing mode recognizes these keywords:
 ]
 ```
 
-## Troubleshooting
+## Retrieval configuration
 
-### `FileNotFoundError` for policy documents
+The default retrieval count is three chunks:
 
-Run the application from the repository or module using the commands above and verify that all eight `.txt` files exist in `support_assistant/data/`.
-
-### API returns HTTP 422
-
-The current `QueryRequest` model requires both `user_query` and `mock_llm`. Include both fields in the JSON request.
-
-### `GROQ_API_KEY` errors
-
-Create `support_assistant/.env` with a valid key and restart Uvicorn. Use testing mode to avoid LLM calls while developing.
-
-### No documents are retrieved
-
-Check that the policy files are not empty and that the ChromaDB collection has been populated. Try a shorter query such as:
-
-```text
-What is the return policy?
+```python
+retrieved_docs, retrieved_metadata = retrieve(question, n_results=3)
 ```
 
-### Model or API errors
+Use more context:
 
-Verify the Groq model name, API key, quota, and network connection. The answer-generation and direct-answer flows retry failed JSON responses up to two times before returning an error response.
+```python
+retrieved_docs, retrieved_metadata = retrieve(question, n_results=5)
+```
+
+Use fewer results for faster responses:
+
+```python
+retrieved_docs, retrieved_metadata = retrieve(question, n_results=1)
+```
+
+Document chunks shorter than 50 characters are currently skipped in `chunk_documents()`.
+
+## Error handling
+
+LLM answer-generation and direct-answer flows retry invalid JSON or validation failures up to two times. If all retries fail, the assistant returns an error response with confidence `0.0`.
+
+| Problem | Likely cause | Solution |
+|---|---|---|
+| `FileNotFoundError` | Missing policy file | Verify all files exist in `support_assistant/data/`. |
+| HTTP 422 | Missing API field | Include both `user_query` and `mock_llm`. |
+| `GROQ_API_KEY` error | Missing or invalid key | Create `support_assistant/.env` and restart the server. |
+| No documents retrieved | Empty database or overly specific query | Check files and try a shorter query. |
+| JSON decode error | Model returned non-JSON text | Check logs; the application retries automatically. |
+| Model/API error | Invalid model, quota, or network issue | Verify Groq model availability and credentials. |
+| Slow responses | LLM latency or excessive retrieval | Reduce `n_results` or use mock mode. |
+| High memory usage | Large database or context | Reduce chunk size and retrieval count. |
+
+Check the collection with:
+
+```python
+from chromadb import PersistentClient
+
+client = PersistentClient(path="/content/zepto_knowledge_db")
+collection = client.get_collection(name="compnay_docs")
+print(collection.count())
+```
+
+## Docker deployment
+
+Build the image from the repository root:
+
+```bash
+docker build \
+  -t zepto-support-assistant \
+  -f support_assistant/support_assistant_docker.dockerfile .
+```
+
+Run it:
+
+```bash
+docker run --rm -p 8050:8050 \
+  -e GROQ_API_KEY=your_api_key_here \
+  zepto-support-assistant
+```
+
+## Testing examples
+
+### Policy question
+
+```python
+response = apple.invoke({"query": "What is the policy for returns?"})
+assert response["intent"] == "policy_question"
+```
+
+### General question
+
+```python
+response = apple.invoke({"query": "What is the capital of France?"})
+assert response["intent"] == "general_question"
+```
+
+### Ambiguous policy query
+
+```python
+response = apple.invoke({"query": "Tell me about membership"})
+assert response["intent"] == "policy_question"
+```
 
 ## Dependencies
 
@@ -215,12 +336,31 @@ uvicorn
 python-dotenv
 ```
 
-`asyncio` is part of the Python standard library and does not normally need to be installed separately. The script also imports `pandas`; add `pandas` to the requirements file if that import remains in use.
+`asyncio` is part of the Python standard library and does not normally need to be installed with pip. The current Python file also imports `pandas`; add `pandas` to `requirements.txt` if that import remains in use.
 
-## Related documentation
+## Future enhancements
 
-- [`SUPPORTREADME.md`](./SUPPORTREADME.md) — original support assistant documentation
-- [`README.md`](../README.md) — repository overview
+- [ ] Multi-turn conversation history
+- [ ] User feedback loop for confidence calibration
+- [ ] Fine-tuned embeddings for the Zepto domain
+- [ ] Document versioning and hot updates
+- [ ] Analytics dashboard for query patterns
+- [ ] Multi-language support
+- [ ] Ticket management integration
+- [ ] Custom intent categories such as billing and technical support
+- [ ] Response personalization based on user tier
+- [ ] Rate limiting and authentication
+- [ ] Query caching and batch processing
 
+## Support and contribution
+
+For issues or improvements:
+
+1. Check this README and the troubleshooting section.
+2. Review application logs.
+3. Test with mock mode first.
+4. Include the query, expected output, actual output, and relevant logs when filing an issue.
+
+**Canonical documentation:** This `README.md` combines the previous `README.md` and `SUPPORTREADME.md`.  
 **Branch:** `devlopment`  
 **Maintainer:** Zepto Support Team

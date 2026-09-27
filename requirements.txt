@@ -12,3 +12,9 @@ joblib
 chromadb
 langgraph
 pydantic
+sentence-transformers
+groq
+fastapi
+uvicorn
+
+

@@ -1,22 +1,33 @@
 
 #pip install chromadb sentence-transformers
 import chromadb
+import os
 
-with open("/Delivery Policy", "r") as f:
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+folder_path = os.path.join(current_dir, "Delivery Policy")
+with open(folder_path, "r") as f:
   Delivery_Policy = f.read()
-with open("/Returns & Refunds", "r") as f:
+folder_path = os.path.join(current_dir, "Returns & Refunds")
+with open(folder_path, "r") as f:
   Return_Refunds = f.read()
-with open("/Membership Tiers", "r") as f:
+folder_path = os.path.join(current_dir, "Membership Tiers")
+with open(folder_path, "r") as f:
   Membershipt_Tiers = f.read()
-with open("/Order Tracking", "r") as f:
+folder_path = os.path.join(current_dir, "Order Tracking")
+with open(folder_path, "r") as f:
   Order_Tracking = f.read()
-with open("/Order Cancellation Policy", "r") as f:
+folder_path = os.path.join(current_dir, "Order Cancellation Policy")
+with open(folder_path, "r") as f:
   Cancellation_Policy = f.read()
-with open("/Damaged or Missing Items", "r") as f:
+folder_path = os.path.join(current_dir, "Damaged or Missing Items")
+with open(folder_path, "r") as f:
    Missing_Items= f.read()
-with open("/Gift Cards", "r") as f:
+folder_path = os.path.join(current_dir, "Gift Cards")
+with open(folder_path, "r") as f:
   Gift_Cards = f.read()
-with open("/Customer Support Hours", "r") as f:
+folder_path = os.path.join(current_dir, "Customer Support Hours")
+with open(folder_path, "r") as f:
   Customer_Support_Hours = f.read()
 
 
@@ -83,6 +94,8 @@ def retrieve(question, n_results = 3):
 
   return results["documents"][0], results['metadatas'][0]
 
+print("==="*50)
+print("Testing out of retrieve function")
 # Test the retrieve function
 question = "What is the policy for canceling an order?"
 retrieved_docs, retrieved_metadata = retrieve(question)
@@ -92,10 +105,24 @@ for doc, meta in zip(retrieved_docs, retrieved_metadata):
   print(f"Source: {meta['source']}")
   print(f"Content: {doc}\n")
 
+print("==="*50)
+# Install the Groq SDK
+#pip install -qU groq
 
+# Import necessary libraries
+import os
+from groq import Groq
+from dotenv import load_dotenv
 
+# Used to securely store your API key
+folder_path = os.path.join(current_dir, ".env")
+load_dotenv(dotenv_path=folder_path)
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+
+# Initialize the Groq client
+client = Groq(api_key=GROQ_API_KEY)
 # Install LangGraph and Pydantic
-!pip install -qU langgraph pydantic
+#!pip install -qU langgraph pydantic
 
 # Import necessary libraries
 from typing import TypedDict, Annotated, List
@@ -115,7 +142,7 @@ class AgentState(TypedDict):
     sources: List[str] # Added sources to AgentState
     confidence: float # Added confidence to AgentState
 
-print(f"AgentState definition: {AgentState.__annotations__}")
+#print(f"AgentState definition: {AgentState.__annotations__}")
 
 # Define the Pydantic model for the final answer output
 class AnswerOutput(BaseModel):
@@ -159,13 +186,13 @@ def classify_intent(state: AgentState):
                 temperature=0.0
             )
             llm_response = chat_completion.choices[0].message.content.strip().lower()
-            print(f"LLM Raw Intent Response: '{llm_response}'") # Debug print
+            #print(f"LLM Raw Intent Response: '{llm_response}'") # Debug print
             if llm_response == "policy_question": # Made comparison strict
                 intent = "policy_question"
             else:
                 intent = "general_question"
         except Exception as e:
-            print(f"Error classifying intent with LLM: {e}")
+            #print(f"Error classifying intent with LLM: {e}")
             # Fallback to general question if LLM classification fails
             intent = "general_question"
 
@@ -275,7 +302,7 @@ def retrieve_and_answer(state: AgentState):
                     retries += 1
                 else:
                     answer_output = AnswerOutput(answer="I encountered an error processing the response. Please try again.", sources=[], confidence=0.0)
-                    print("Max retries reached for JSON decoding.")
+                    #print("Max retries reached for JSON decoding.")
                     break
 
             except Exception as e:
@@ -288,17 +315,17 @@ def retrieve_and_answer(state: AgentState):
                     retries += 1
                 else:
                     answer_output = AnswerOutput(answer="I encountered an error processing the response. Please try again.", sources=[], confidence=0.0)
-                    print("Max retries reached for LLM or Pydantic validation.")
+                    #print("Max retries reached for LLM or Pydantic validation.")
                     break
 
         if answer_output is None:
              # Fallback if all retries fail or an unexpected issue occurs
              answer_output = AnswerOutput(answer="I encountered an unexpected error and could not generate a valid response. Please try again.", sources=[], confidence=0.0)
 
-    #print(f"Answer generated: {answer_output.answer}")
-    #print(f"Sources: {answer_output.sources}")
-    #print(f"Confidence: {answer_output.confidence}")
-    #print(f"Returning from retrieve_and_answer: {answer_output.dict()}")
+    print(f"Answer generated: {answer_output.answer}")
+    print(f"Sources: {answer_output.sources}")
+    print(f"Confidence: {answer_output.confidence}")
+    print(f"Returning from retrieve_and_answer: {answer_output.dict()}")
 
     return {"answer": answer_output.answer, "retrieved_content": retrieved_docs, "retrieved_metadata": retrieved_metadata, "sources": answer_output.sources, "confidence": answer_output.confidence}
 
@@ -347,10 +374,10 @@ def direct_answer(state: AgentState):
 
         while retries <= max_retries:
             try:
-                print(query)
+                #(query)
                 pydantic_schema_str = json.dumps(AnswerOutput.model_json_schema(), indent=2)
                 prompt = direct_answer_prompt_template.format(query=query,schema=pydantic_schema_str)
-                print(f"Direct Answer Prompt: {prompt}") # Debug print
+                #print(f"Direct Answer Prompt: {prompt}") # Debug print
                 
                 if not current_messages: # First attempt
                     current_messages = [
@@ -375,7 +402,7 @@ def direct_answer(state: AgentState):
 
             except json.JSONDecodeError as e:
                 error_msg = f"JSON decoding error: {e}. Raw response: {llm_response_content}"
-                print(error_msg)
+                #print(error_msg)
                 if retries < max_retries:
                     corrective_instruction = f"Your previous response was not valid JSON. Please ensure your response is ONLY a valid JSON object adhering to the specified schema. Error: {e}."
                     current_messages.append({"role": "assistant", "content": llm_response_content})
@@ -383,12 +410,12 @@ def direct_answer(state: AgentState):
                     retries += 1
                 else:
                     answer_output = AnswerOutput(answer="I encountered an error processing the response. Please try again.", sources=[], confidence=0.0)
-                    print("Max retries reached for JSON decoding.")
+                    #print("Max retries reached for JSON decoding.")
                     break
 
             except Exception as e:
                 error_msg = f"Error during LLM call or Pydantic validation: {e}. Raw response: {llm_response_content}"
-                print(error_msg)
+                #print(error_msg)
                 if retries < max_retries:
                     corrective_instruction = f"Your previous response failed validation: {e}. Please ensure your response is a valid JSON object adhering strictly to the schema including correct types and field names."
                     current_messages.append({"role": "assistant", "content": llm_response_content})
@@ -396,27 +423,27 @@ def direct_answer(state: AgentState):
                     retries += 1
                 else:
                     answer_output = AnswerOutput(answer="I encountered an error processing the response. Please try again.", sources=[], confidence=0.0)
-                    print("Max retries reached for LLM or Pydantic validation.")
+                    #print("Max retries reached for LLM or Pydantic validation.")
                     break
 
         if answer_output is None:
              # Fallback if all retries fail or an unexpected issue occurs
              answer_output = AnswerOutput(answer="I encountered an unexpected error and could not generate a valid response. Please try again.", sources=[], confidence=0.0)
 
-    #print(f"Answer generated: {answer_output.answer}")
-    #print(f"Sources: {answer_output.sources}")
-    #print(f"Confidence: {answer_output.confidence}")
-    #print(f"Returning from direct_answer: {answer_output.dict()}")
+    print(f"Answer generated: {answer_output.answer}")
+    print(f"Sources: {answer_output.sources}")
+    print(f"Confidence: {answer_output.confidence}")
+    print(f"Returning from direct_answer: {answer_output.dict()}")
 
     return {"answer": answer_output.answer, "sources": answer_output.sources, "confidence": answer_output.confidence}
 
 def route_intent(state: AgentState):
-    print("--Route Intent---")
+    #print("--Route Intent---")
     if state["intent"] == "policy_question":
-        print("i am here")
+        #print("i am here")
         return "retrieve_and_answer"
     elif state["intent"] == "general_question":
-        print("general question")
+        #print("general question")
         return "direct_answer"
     return "direct_answer" # Fallback
   
@@ -469,12 +496,12 @@ print(f"Confidence: {response['confidence']}")
 # Set MOCK_LLM to '0' to use the real LLM integration
 MOCK_LLM = '1'
 
-print("\n---Testing with a General Question---")
+#print("\n---Testing with a General Question---")
 general_query = "What is the capital of France?"
 
 # Run the graph
 inputs = {"query": general_query}
-response = app.invoke(inputs)
+response = apple.invoke(inputs)
 
 print(f"\nQuery: {response['query']}")
 print(f"Intent: {response['intent']}")
@@ -482,6 +509,7 @@ print(f"Answer: {response['answer']}")
 print(f"Retrieved Content Sources: {response['sources']}")
 print(f"Confidence: {response['confidence']}")
 
+import asyncio
 from fastapi import FastAPI
 
 from pydantic import BaseModel
@@ -489,31 +517,34 @@ import nest_asyncio
 import uvicorn
 import threading 
 
-nest_asyncio.apply()
+#nest_asyncio.apply()
 
 # 6. Set up FastAPI
-appp = FastAPI(title="LangGraph Agent API")
+
+app = FastAPI(title="LangGraph Agent API")
 
 # Request schema for API input
 class QueryRequest(BaseModel):
     user_query: str
+    mock_llm:int
 
 
-MOCK_LLM = '0'
-@appp.post("/chat")
+
+@app.post("/chat")
 async def chat_with_agent(request: QueryRequest):
     inputs = {"query": request.user_query}
     
     
     final_output = apple.invoke(inputs)
-    return {"detected_intent": final_output["intent"], "agent_response": final_output["response"]}
+    return {"query":final_output.get("query","unkown"),
+            "source":final_output.get("sources","unknown"),
+            "confidence":final_output.get("confidence","unknown"),
+            "detected_intent": final_output.get("intent","unknown"),
+            "agent_response": final_output.get("answer","unknown")}
+
 
 # 5. Run Uvicorn in the background thread
-def run_server():
-    uvicorn.run(appp, host="127.0.0.1", port=8050)
+# python -m uvicorn support_assistances:app --reload --port 8050
+# attached 2 screen shots as png
 
-threading.Thread(target=run_server, daemon=True).start()
 
-# 6. Expose the server using localtunnel
-print("\n👉 Click the link below when it appears. If it asks for an IP, use your Colab external IP.")
-!npx --yes localtunnel --port 8050

@@ -335,7 +335,88 @@ fastapi
 uvicorn
 python-dotenv
 ```
++-------------------+      +-------------------+      +-----------------------+
 
+| Raw Documents     | ---> | Document Loader   | ---> | Text Splitter         |
+| (PDF, MD, HTML)   |      | (Extracts Text)   |      | (Creates Small Chunks)|
++-------------------+      +-------------------+      +-----------------------+
+                                                                  |
+                                                                  ▼
++-------------------+      +-------------------+      +-----------------------+
+
+| Vector Database   | <--- | Embeddings Model  | <--- | Raw Text Chunks       |
+| (Chroma, Pinecone)|      | (Text to Vectors) |      | (e.g., 500 chars each)|
++-------------------+      +-------------------+      +-----------------------+
+
+as the iamge shows 8 documents from data folder are read and chunks are created this chuncks along with ids,metadata are converted into vectors and stored in chrome db chunk_documents(text, source_name),collection.add(
+    documents=documents,
+    ids=ids,
+    metadatas=metadata
+) for chuncking and inserting into chrome db
+
+retrieve the data from chrome db based on question,number of results using function retrieve(question, n_results = 3)
+
+
+
+Features
+1. Intent Classification function  classify_intent(state: AgentState)
+Classifies incoming queries as policy_question or general_question
+Uses LLM-based classification (production) or keyword heuristics (testing)
+Enables intelligent routing to appropriate answer handlers
+2. Semantic Search & Retrieval
+Stores policy documents in ChromaDB vector database
+Retrieves relevant document chunks using sentence embeddings
+Configurable retrieval (default: top 3 results)
+Supports document versioning and updates
+3. Answer Generation
+route_intent(state: AgentState): depending on out of this function call any one of the below functions
+Policy questions: Context-based answers from retrieved documents retrieve_and_answer(state: AgentState)
+General questions: Direct LLM-generated responses (policy scope boundary) direct_answer(state: AgentState)
+Structured JSON output with Pydantic validation
+Confidence scores (0.0-1.0) based on answer certainty
+Source attribution for traceability
+5. Workflow Orchestration
+Built with LangGraph for robust state management
+Clear pipeline: Classify → Route → Answer
+Automatic retry logic for LLM failures
+Fallback handling for edge cases
+Architecture
+┌─────────────────┐
+│  User Query     │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────────────────────────────┐
+│ 1. CLASSIFY INTENT                      │
+│ ├─ Keyword matching (MOCK mode)         │
+│ └─ LLM classification (production)      │
+└────────┬────────────────────────────────┘
+         │
+    ┌────┴─────────┐
+    │              │
+    ▼              ▼
+┌──────────┐  ┌──────────────┐
+│ POLICY   │  │ GENERAL      │
+│ QUESTION │  │ QUESTION     │
+└────┬─────┘  └────┬─────────┘
+     │             │
+     ▼             ▼
+┌──────────────┐ ┌────────────┐
+│ RETRIEVE &   │ │ DIRECT     │
+│ ANSWER       │ │ ANSWER     │
+│ (with docs)  │ │ (no docs)  │
+└────┬─────────┘ └────┬───────┘
+     │                │
+     └────┬───────────┘
+          ▼
+┌──────────────────────────────────────┐
+│ RETURN STRUCTURED RESPONSE           │
+│ {                                    │
+│   "answer": "...",                   │
+│   "sources": [...],                  │
+│   "confidence": 0.85                 │
+│ }                                    │
+└──────────────────────────────────────┘
 `asyncio` is part of the Python standard library and does not normally need to be installed with pip. The current Python file also imports `pandas`; add `pandas` to `requirements.txt` if that import remains in use.
 
 ## Future enhancements

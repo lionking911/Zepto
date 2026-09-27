@@ -4,29 +4,31 @@ import chromadb
 import os
 
 MOCK_LLM=0
-current_dir = os.path.dirname(os.path.abspath(__file__))
-folder_path = os.path.join(current_dir, "Delivery Policy")
+current_dir1 = os.path.dirname(os.path.abspath(__file__))
+secret_path=os.path.join(current_dir1,".env")
+current_dir=os.path.join(current_dir1,"data")
+folder_path = os.path.join(current_dir, "DeliveryPolicy.txt")
 with open(folder_path, "r") as f:
   Delivery_Policy = f.read()
-folder_path = os.path.join(current_dir, "Returns & Refunds")
+folder_path = os.path.join(current_dir, "ReturnsRefunds.txt")
 with open(folder_path, "r") as f:
   Return_Refunds = f.read()
-folder_path = os.path.join(current_dir, "Membership Tiers")
+folder_path = os.path.join(current_dir, "MembershipTiers.txt")
 with open(folder_path, "r") as f:
   Membershipt_Tiers = f.read()
-folder_path = os.path.join(current_dir, "Order Tracking")
+folder_path = os.path.join(current_dir, "OrderTracking.txt")
 with open(folder_path, "r") as f:
   Order_Tracking = f.read()
-folder_path = os.path.join(current_dir, "Order Cancellation Policy")
+folder_path = os.path.join(current_dir, "OrderCancellationPolicy.txt")
 with open(folder_path, "r") as f:
   Cancellation_Policy = f.read()
-folder_path = os.path.join(current_dir, "Damaged or Missing Items")
+folder_path = os.path.join(current_dir, "DamagedorMissingItems.txt")
 with open(folder_path, "r") as f:
    Missing_Items= f.read()
-folder_path = os.path.join(current_dir, "Gift Cards")
+folder_path = os.path.join(current_dir, "GiftCards.txt")
 with open(folder_path, "r") as f:
   Gift_Cards = f.read()
-folder_path = os.path.join(current_dir, "Customer Support Hours")
+folder_path = os.path.join(current_dir, "CustomerSupportHours.txt")
 with open(folder_path, "r") as f:
   Customer_Support_Hours = f.read()
 
@@ -103,7 +105,7 @@ from dotenv import load_dotenv
 
 # Used to securely store your API key
 folder_path = os.path.join(current_dir, ".env")
-load_dotenv(dotenv_path=folder_path)
+load_dotenv(dotenv_path=secret_path)
 GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 
 # Initialize the Groq client

@@ -1,3 +1,4 @@
+
 requests
 beautifulsoup4
 ftfy
@@ -16,5 +17,7 @@ sentence-transformers
 groq
 fastapi
 uvicorn
+sqlite3
+python-dotenv
 
 
